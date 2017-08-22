@@ -1,4 +1,5 @@
 from django.db import models
+from celery.worker.strategy import default
 
 # Create your models here.
 class Customer(models.Model):
@@ -38,35 +39,182 @@ class Customer(models.Model):
     def __str__(self):
         return self.qq
 
+
+class Tag(models.Model):
+    '''标签'''
+    # 根据Customer客户信息表的字段进行补充的
+    # 标签的名字，唯一
+    name = models.CharField(unique=True, max_length=32)
+
+    def __str__(self):
+        return self.name
+    
+    
 class CustomerFollowUp(models.Model):
     '''客户跟进表'''
-    pass
+    # 根据哪个客户，外键关联用户信息表
+    customer = models.ForeignKey('Customer')
+    # 怎么跟进的，对跟进内容做详细记录
+    content = models.TextField(verbose_name='跟进内容')
+    # 销售顾问跟进用户的详细信息记录，外键关联账号表
+    consultant = models.ForeignKey('UserProfile')
+    # 跟进判断客户意向
+    intention_choices = ((0, '2周内报名'),
+                         (1, '1个月报名'),
+                         (2, '近期无表名计划'),
+                         (3, '已在其它机构报名'),
+                         (4, '已报名'),
+                         (5, '已拉黑'),
+                         )
+    intention = models.SmallIntegerField(choices=intention_choices)
+    # 跟进日期
+    date = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return '<%s : %s>'%(self.customer.qq, self.intention)    
 
 
 class Course(models.Model):
     '''课程表'''
-    pass
+    # 课程的名字
+    name = models.CharField(max_length=64, unique=True)
+    # 课程的价格
+    price = models.PositiveSmallIntegerField()
+    # 课程周期
+    period = models.PositiveSmallIntegerField(verbose_name='周期（月）')
+    # 课程大纲
+    outline = models.TextField()
+    
+    def __str__(self):
+        return self.name
 
+
+# 补充：分校表，后期业务发展起来，没考虑到这点，会很麻烦
+class Branch(models.Model):
+    '''校区表'''
+    # 分校名称
+    name = models.CharField(max_length=128, unique=True)
+    # 分校地址
+    addr = models.CharField(max_length=128)
+    
+    def __str__(self):
+        return self.name
+    
 
 class ClassList(models.Model):
     '''班级表'''
-    pass
+    # 班级所在校区，外键关联校区表
+    branch = models.ForeignKey('Branch', verbose_name='分校')
+    # 班级所授课程，外键关联课程表
+    course = models.ForeignKey('Course')
+    # 班级的类型
+    class_type_choices = ((0, '面授（脱产）'),
+                          (1, '面试（周末）'),
+                          (2, '网络班'),
+                          )
+    class_type = models.SmallIntegerField(choices=class_type_choices, verbose_name='班级类型')
+    # 开班期数
+    semester = models.PositiveIntegerField(verbose_name='学期')
+    # 班级上课的老师，多对多
+    teachers = models.ManyToManyField('UserProfile')
+    # 开班日期必须有，不能为空
+    start_date = models.DateField(verbose_name='开班日期')
+    # 结业日期不重要，所以可以为空
+    end_date = models.DateTimeField(verbose_name='结业日期', blank=True, null=True)
+    
+    def __str__(self):
+        return "%s %s %s"%(self.branch, self.course, self.semester)
+    
+    # 通过多个字段保持唯一性
+    class Meta:
+        unique_together = ('branch', 'course', 'semester')
 
 
 class CourseRecord(models.Model):
     '''上课记录'''
-    pass
-
-
+    from_class = models.ForeignKey('ClassList', verbose_name='班级')
+    day_num = models.PositiveSmallIntegerField(verbose_name='第几天（天）')
+    # 上课的老师是一对多
+    teacher = models.ForeignKey('UserProfile')
+    # 是否有作业，默认有
+    has_homework = models.BooleanField(default=True)
+    homework_title = models.CharField(max_length=128, blank=True, null=True)
+    homework_content = models.TextField(blank=True, null=True)
+    outline = models.TextField(verbose_name='本节课课程大纲')
+    date = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return '%s %s'%(self.from_class, self.day_num)
+    
+    class Meta:
+        unique_together = ('from_class', 'day_num')
+        
+        
 class StudyRecord(models.Model):
     '''学习记录'''
-    pass
+    # 学生，外键关联报名表
+    student = models.ForeignKey('Enrollment')
+    # 上课记录，外键关联上课记录表
+    course_record = models.ForeignKey('CourseRecord')
+    # 出勤类型
+    attendance_choices = ((0, '已签到'),
+                          (1, '迟到'),
+                          (2, '缺勤'),
+                          (3, '早退'),
+                          )
+    attendance = models.SmallIntegerField(choices=attendance_choices, default=0)
+    # 分数，-50,-100罚款, 0考虑肯能中途入班，前面分数为0的情况
+    score_choices = ((100, 'A+'),
+                     (90, 'A'),
+                     (85, 'B+'),
+                     (85, 'B'),
+                     (75, 'B-'),
+                     (70, 'C+'),
+                     (60, 'C'),
+                     (40, 'C-'),
+                     (-50, 'D'),
+                     (-100, 'COPY'),
+                     (0, 'N/A'),
+                     )
+    score = models.SmallIntegerField(choices=score_choices, default=0)
+    # 备注
+    memo = models.TextField(blank=True, null=True)
+    date = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return '%s %s %s'%(self.student, self.course, self.score)
 
 
 class Enrollment(models.Model):
     '''报名表'''
-    pass
+    customer = models.ForeignKey('Customer')
+    enrolled_class = models.ForeignKey('ClassList', verbose_name='所报班级')
+    # 课程顾问
+    consultant = models.ForeignKey('UserProfile', verbose_name='课程顾问') 
+    contract_agreed = models.BooleanField(default=False, verbose_name='学员已同意合同')
+    contract_approved =models.BooleanField(defaulte=False, verbose_name='合同已审核')
+    date = models.DateTimeField(auto_now_add)
+    
+    def __str__(self):
+        return '%s %s'%(self.customer, self.enrolled_class)
+    
+    # 使用多外键唯一
+    class meta:
+        unique_torgether = ('customer', 'enrolled_class')
 
+
+# 补充：缴费表
+class Payment(models.Model):
+    '''缴费记录'''
+    customer = models.ForeignKey('Customer')
+    course = models.ForeignKey('Course', verbose_name='所报课程')
+    # 默认定金500
+    amount = models.PositiveIntegerField(verbose_name='数额', default=500)
+    consultant = models.ForeignKey('UserProfile')
+    date = models.DateTimeField(auto_now_add=True)    
+
+    def __str__(self):
+        return '%s %s'%(self.customer, self.amount)
 
 class UserProfile(models.Model):
     '''账号表'''
@@ -75,4 +223,7 @@ class UserProfile(models.Model):
 
 class  Role(models.Model):
     '''角色表'''
-    pass
+    name = models.CharField(max_length=32,unique=True)
+
+    def __str__(self):
+        return self.name
