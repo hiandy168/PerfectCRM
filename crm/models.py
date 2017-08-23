@@ -1,5 +1,6 @@
 from django.db import models
 from celery.worker.strategy import default
+from django.contrib.auth.models import  User
 
 # Create your models here.
 class Customer(models.Model):
@@ -29,6 +30,10 @@ class Customer(models.Model):
     content = models.TextField(verbose_name='咨询详情')
     # 给客户打上标签，后期可以用来统计客户
     tags = models.ManyToManyField('Tag', blank=True, null=True)
+    status_choices = ((0, '已报名'),
+                      (1, '未报名'),
+                      )
+    status = models.SmallIntegerField(choices=status_choices, default=1)
     # 入学后对应的账户表
     consultant = models.ForeignKey('UserProfile')
     # 做备忘录，添加一下备注
@@ -38,6 +43,10 @@ class Customer(models.Model):
     
     def __str__(self):
         return self.qq
+    
+    class Meta:
+        verbose_name = '客户表'
+        verbose_name_plural = '客户表'
 
 
 class Tag(models.Model):
@@ -48,6 +57,10 @@ class Tag(models.Model):
 
     def __str__(self):
         return self.name
+    
+    class Meta:
+        verbose_name = '标签'
+        verbose_name_plural = '标签'
     
     
 class CustomerFollowUp(models.Model):
@@ -72,6 +85,10 @@ class CustomerFollowUp(models.Model):
     
     def __str__(self):
         return '<%s : %s>'%(self.customer.qq, self.intention)    
+    
+    class Meta:
+        verbose_name = '客户跟进表'
+        verbose_name_plural = '客户跟进记录'
 
 
 class Course(models.Model):
@@ -87,6 +104,10 @@ class Course(models.Model):
     
     def __str__(self):
         return self.name
+    
+    class Meta:
+        verbose_name = '课程表'
+        verbose_name_plural = '课程表'
 
 
 # 补充：分校表，后期业务发展起来，没考虑到这点，会很麻烦
@@ -99,6 +120,10 @@ class Branch(models.Model):
     
     def __str__(self):
         return self.name
+    
+    class Meta:
+        verbose_name = '分校'
+        verbose_name_plural = '分校'
     
 
 class ClassList(models.Model):
@@ -128,6 +153,8 @@ class ClassList(models.Model):
     # 通过多个字段保持唯一性
     class Meta:
         unique_together = ('branch', 'course', 'semester')
+        verbose_name = '班级'
+        verbose_name_plural = '班级'
 
 
 class CourseRecord(models.Model):
@@ -148,6 +175,8 @@ class CourseRecord(models.Model):
     
     class Meta:
         unique_together = ('from_class', 'day_num')
+        verbose_name = '上课记录'
+        verbose_name_plural = '上课记录'
         
         
 class StudyRecord(models.Model):
@@ -183,6 +212,10 @@ class StudyRecord(models.Model):
     
     def __str__(self):
         return '%s %s %s'%(self.student, self.course, self.score)
+    
+    class Meta:
+        verbose_name = '学习记录'
+        verbose_name_plural = '学习记录'
 
 
 class Enrollment(models.Model):
@@ -192,8 +225,8 @@ class Enrollment(models.Model):
     # 课程顾问
     consultant = models.ForeignKey('UserProfile', verbose_name='课程顾问') 
     contract_agreed = models.BooleanField(default=False, verbose_name='学员已同意合同')
-    contract_approved =models.BooleanField(defaulte=False, verbose_name='合同已审核')
-    date = models.DateTimeField(auto_now_add)
+    contract_approved =models.BooleanField(default=False, verbose_name='合同已审核')
+    date = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
         return '%s %s'%(self.customer, self.enrolled_class)
@@ -201,6 +234,8 @@ class Enrollment(models.Model):
     # 使用多外键唯一
     class meta:
         unique_torgether = ('customer', 'enrolled_class')
+        verbose_name = '报名表'
+        verbose_name_plural = '报名表'
 
 
 # 补充：缴费表
@@ -215,15 +250,36 @@ class Payment(models.Model):
 
     def __str__(self):
         return '%s %s'%(self.customer, self.amount)
+    
+    class Meta:
+        verbose_name = '缴费记录'
+        verbose_name_plural = '缴费记录'
 
 class UserProfile(models.Model):
     '''账号表'''
-    pass
+    user = models.OneToOneField(User)
+    name = models.CharField(max_length=32)
+    roles = models.ManyToManyField('Role', blank=True, null=True)
 
+    def __str__(self):
+        return self.name
 
 class  Role(models.Model):
     '''角色表'''
     name = models.CharField(max_length=32,unique=True)
 
+    def __str__(self):
+        return self.name
+    
+    class Meta:
+        verbose_name = '角色'
+        verbose_name_plural = '角色'
+        
+
+class Menu(models.Model):
+    '''菜单'''
+    name = models.CharField(max_length=32)
+    url_name = models.CharField(max_length=64)
+    
     def __str__(self):
         return self.name
