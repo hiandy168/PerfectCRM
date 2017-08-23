@@ -1,5 +1,4 @@
 from django.db import models
-from celery.worker.strategy import default
 from django.contrib.auth.models import  User
 
 # Create your models here.
@@ -267,6 +266,7 @@ class UserProfile(models.Model):
 class  Role(models.Model):
     '''角色表'''
     name = models.CharField(max_length=32,unique=True)
+    menus = models.ManyToManyField('Menu', blank=True)
 
     def __str__(self):
         return self.name
