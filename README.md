@@ -51,6 +51,18 @@
 * Userprofile添加：admin角色拥有：1.2.3
 * url别名的使用
 
+## 动态页面展示2
+* 要求：前端页面不配置默认都是一样的，配置了都不一样，即通用模板。参考admin的模型注册功能。（难点）：不管多少张表，我只要配置一下就ok。相当于自定义一个admin，之后任何地方都可以拿来直接使用。django开发的不能任意嵌入到自己的其他项目中 ，他的样式不好修改。自己写得非常了解，想怎么改就怎么改。
+* 新建应用king_admin
+* 分析django admin的动态url：app+表名
+* 在创建通用模板
+* 创建king_admin.py：admin基类、admin自定义类、register()注册使用模型类和admin自定义类产生关联。
+* 前端接收admin传来数据的格式：{'crm':{'userprofile':admin_class}}
+* 
+
+
+
+
 
 
 

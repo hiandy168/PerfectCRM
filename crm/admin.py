@@ -10,6 +10,7 @@ class UserProfileAdmin(admin.ModelAdmin):
     list_display = ['user', 'name']
     
 
+
 admin.site.register(models.Customer, CustomerAdmin)
 admin.site.register(models.CustomerFollowUp)
 admin.site.register(models.Enrollment)
