@@ -1,8 +1,7 @@
 {%  extends 'king_admin/table_index.html' %}
 {% load tags %}
 
-{% block container %}
-    {{ admin_class.list_display }}
+{% block container %}  
     <div class="panel panel-info">
           <div class="panel-heading">
             <h3 class="panel-title">Panel title</h3>
@@ -50,7 +49,7 @@
                   {% endif %}
 
                   {% for loop_counter in query_sets.paginator.page_range %}
-                        {% render_page_ele  loop_counter query_sets%}
+                        {% render_page_ele  loop_counter query_sets filter_condtions%}
                   {% endfor %}
 
                   {% if query_sets.has_next %}

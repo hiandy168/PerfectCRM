@@ -31,13 +31,15 @@ def build_table_row(obj,admin_class):
     return mark_safe(row_ele)
 
 @register.simple_tag
-def render_page_ele(loop_counter,query_sets):
-
+def render_page_ele(loop_counter,query_sets, filter_condtions):
+    filters = ''
+    for k,v in filter_condtions.items():
+        filters += '&%s=%s'%(k,v)
     if abs(query_sets.number - loop_counter) <= 1:
         ele_class = ""
         if query_sets.number == loop_counter:
             ele_class = "active"
-        ele = '''<li class="%s"><a href="?page=%s">%s</a></li>''' %(ele_class,loop_counter,loop_counter)
+        ele = '''<li class="%s"><a href="?page=%s%s">%s</a></li>''' %(ele_class,loop_counter,filters, loop_counter)
 
         return mark_safe(ele)
 
