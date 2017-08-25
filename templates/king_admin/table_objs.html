@@ -1,23 +1,40 @@
 {%  extends 'king_admin/table_index.html' %}
 {% load tags %}
 
-{% block container %}  
+
+
+
+{% block container %}
+    {{ admin_class.list_display }}
     <div class="panel panel-info">
           <div class="panel-heading">
-            <h3 class="panel-title">Panel title</h3>
+            <h3 class="panel-title">{% get_model_name admin_class %}
+                <a href="{{ request.path }}add/" class="pull-right">Add</a>
+            </h3>
+
           </div>
           <div class="panel-body">
                <div class="row">
                 <form class="" method="get">
-                  {% for condtion in admin_class.list_filters %}
+                  {% for filter_field in admin_class.list_filters %}
                     <div class="col-lg-2">
-                    <span>{{ condtion }}</span>
-                    {% render_filter_ele condtion admin_class filter_condtions %}
+                    <span>{{ filter_field }}</span>
+                    {% render_filter_ele filter_field admin_class filter_condtions %}
                     </div>
 
                   {% endfor %}
 
                     <button type="SUBMIT" class="btn btn-success">检索</button>
+
+                　<hr>
+                  <div class="row">
+                      <div class="col-lg-2"　>
+                        <input type="search" name="_q" class="form-control" style="margin-left:15px" value="{{ search_text }}" placeholder="search by {% for search_field in admin_class.search_fields %}{{ search_field }},{% endfor %} ">
+                      </div>
+                      <div class="col-lg-2"　>
+                        <button type="SUBMIT" class="btn btn-success">search</button>
+                      </div>
+                  </div>
                 </form>
 
                </div>
@@ -26,37 +43,50 @@
                   <thead>
                     <tr>
                         {% for column in admin_class.list_display %}
-                            <th>{{ column }}</th>
+                            {% build_table_header_column column orderby_key filter_condtions %}
+
                         {% endfor %}
                     </tr>
                   </thead>
-                  {{query_sets}}
+                  <tfoot>
+                    <tr>
+                        <td>总计{{ query_sets.paginator.count }}条</td></tr>
+                  </tfoot>
                   <tbody>
+{#                    {% get_query_sets  admin_class as query_sets %}#}
                     {% for obj in query_sets %}
                     <tr>
-                        {% build_table_row obj admin_class %}
+                        {% build_table_row request obj admin_class %}
                     </tr>
                     {% endfor %}
                   </tbody>
+
               </table>
 
 
 
           <nav>
+
               <ul class="pagination">
                   {% if query_sets.has_previous %}
                         <li class=""><a href="?page={{ query_sets.previous_page_number }}">上页</a></li>
                   {% endif %}
+{#                   <li class="active"><a>{{ query_sets.number }}</a></li>#}
 
-                  {% for loop_counter in query_sets.paginator.page_range %}
-                        {% render_page_ele  loop_counter query_sets filter_condtions%}
-                  {% endfor %}
+{#                  {% for loop_counter in query_sets.paginator.page_range %}#}
+{#                        {% render_page_ele  loop_counter query_sets filter_condtions%}#}
+{#                  {% endfor %}#}
+
+                  {% build_paginators query_sets   filter_condtions  previous_orderby search_text%}
 
                   {% if query_sets.has_next %}
                         <li class=""><a href="?page={{ query_sets.next_page_number }}">下页</a></li>
                   {% endif %}
 
 
+{#                <li class="disabled"><a href="#">&laquo;</a></li>#}
+{#                <li class="active"><a href="#">1 <span class="sr-only">(current)</span></a></li>#}
+{#                #}
               </ul>
           </nav>
 

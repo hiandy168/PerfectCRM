@@ -58,7 +58,7 @@
 * 在创建通用模板
 * 创建king_admin.py：admin基类、admin自定义类、register()注册使用模型类和admin自定义类产生关联。
 * 前端接收admin传来数据的格式：{'crm':{'userprofile':admin_class}}
-* 
+* 实现检索、搜索、排序
 
 
 

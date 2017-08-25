@@ -27,13 +27,13 @@
 
 <div class="container " style="margin: 50px;width: auto">
     {% block container %}
+            {{ table_list }}
     <div class="row">
         <div class="panel panel-info">
           <div class="panel-heading">
             <h3 class="panel-title">Panel title</h3>
           </div>
           <div class="panel-body">
-            {{ table_list }}
               {% for app_name,app_tables in table_list.items %}
 
                  <table class="table table-hover">
@@ -43,11 +43,11 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for table_name,admin  in app_tables.items %}
+                        {% for table_name,admin_class  in app_tables.items %}
                             <tr>
                                 <td>
                                     <a href="{% url 'table_objs' app_name table_name %}">
-                                       {% render_app_name admin %}
+                                       {% render_app_name admin_class %}
                                     </a>
                                 </td>
                                 <td>add</td>
